@@ -6,15 +6,7 @@
 
 import type { ChatMessage, Session, SessionDetail, SystemStatus, CronJob, Skill, SlashCommand, PluginInfo, TokenResponse, AuthUser, FileAttachment, Marketplace, MarketplacePlugin } from '@/types';
 
-function getApiUrl(): string {
-  if (typeof window !== 'undefined') {
-    const runtime = window.__NANOBOT_RUNTIME_CONFIG__?.NEXT_PUBLIC_API_URL?.trim();
-    if (runtime) {
-      return runtime;
-    }
-  }
-  return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
-}
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
 // ---------------------------------------------------------------------------
 // Token management
@@ -61,7 +53,7 @@ function authHeaders(): Record<string, string> {
 }
 
 async function fetchJSON<T>(path: string, options?: RequestInit): Promise<T> {
-  const res = await fetch(`${getApiUrl()}${path}`, {
+  const res = await fetch(`${API_URL}${path}`, {
     headers: authHeaders(),
     ...options,
   });
@@ -71,7 +63,7 @@ async function fetchJSON<T>(path: string, options?: RequestInit): Promise<T> {
     const refreshed = await tryRefreshToken();
     if (refreshed) {
       // Retry with new token
-      const retry = await fetch(`${getApiUrl()}${path}`, {
+      const retry = await fetch(`${API_URL}${path}`, {
         headers: authHeaders(),
         ...options,
       });
@@ -100,7 +92,7 @@ async function tryRefreshToken(): Promise<boolean> {
   const refresh = getRefreshToken();
   if (!refresh) return false;
   try {
-    const res = await fetch(`${getApiUrl()}/api/auth/refresh`, {
+    const res = await fetch(`${API_URL}/api/auth/refresh`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ refresh_token: refresh }),
@@ -119,7 +111,7 @@ async function tryRefreshToken(): Promise<boolean> {
 // ---------------------------------------------------------------------------
 
 export async function register(username: string, email: string, password: string): Promise<TokenResponse> {
-  const res = await fetch(`${getApiUrl()}/api/auth/register`, {
+  const res = await fetch(`${API_URL}/api/auth/register`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ username, email, password }),
@@ -134,7 +126,7 @@ export async function register(username: string, email: string, password: string
 }
 
 export async function login(username: string, password: string): Promise<TokenResponse> {
-  const res = await fetch(`${getApiUrl()}/api/auth/login`, {
+  const res = await fetch(`${API_URL}/api/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ username, password }),
@@ -189,7 +181,7 @@ export function streamMessage(
 
   (async () => {
     try {
-      const res = await fetch(`${getApiUrl()}/api/nanobot/chat/stream`, {
+      const res = await fetch(`${API_URL}/api/nanobot/chat/stream`, {
         method: 'POST',
         headers: authHeaders(),
         body: JSON.stringify({ message, session_id: sessionId }),
@@ -257,7 +249,7 @@ export type WsMessageHandler = (data: {
 export type WsStatusListener = (status: WsStatus) => void;
 
 function getWsUrl(): string {
-  const url = new URL(getApiUrl());
+  const url = new URL(API_URL);
   const protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
   return `${protocol}//${url.host}`;
 }
@@ -505,7 +497,7 @@ export async function listPlugins(): Promise<PluginInfo[]> {
 }
 
 export async function downloadSkill(name: string): Promise<void> {
-  const url = `${getApiUrl()}/api/nanobot/skills/${encodeURIComponent(name)}/download`;
+  const url = `${API_URL}/api/nanobot/skills/${encodeURIComponent(name)}/download`;
   const token = getAccessToken();
   const headers: Record<string, string> = {};
   if (token) headers['Authorization'] = `Bearer ${token}`;
@@ -540,7 +532,7 @@ export async function uploadSkill(file: File): Promise<Skill> {
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  const res = await fetch(`${getApiUrl()}/api/nanobot/skills/upload`, {
+  const res = await fetch(`${API_URL}/api/nanobot/skills/upload`, {
     method: 'POST',
     headers,
     body: formData,
@@ -552,7 +544,7 @@ export async function uploadSkill(file: File): Promise<Skill> {
       const retryHeaders: Record<string, string> = {};
       const newToken = getAccessToken();
       if (newToken) retryHeaders['Authorization'] = `Bearer ${newToken}`;
-      const retry = await fetch(`${getApiUrl()}/api/nanobot/skills/upload`, {
+      const retry = await fetch(`${API_URL}/api/nanobot/skills/upload`, {
         method: 'POST',
         headers: retryHeaders,
         body: formData,
@@ -642,7 +634,7 @@ export async function uploadFile(
 
   const result = await new Promise<FileAttachment>((resolve, reject) => {
     const xhr = new XMLHttpRequest();
-    xhr.open('POST', `${getApiUrl()}/api/nanobot/files/upload`);
+    xhr.open('POST', `${API_URL}/api/nanobot/files/upload`);
     if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`);
 
     xhr.upload.onprogress = (e) => {
@@ -677,7 +669,7 @@ export async function deleteFile(fileId: string): Promise<void> {
 }
 
 export function getFileUrl(fileId: string): string {
-  return `${getApiUrl()}/api/nanobot/files/${encodeURIComponent(fileId)}`;
+  return `${API_URL}/api/nanobot/files/${encodeURIComponent(fileId)}`;
 }
 
 // ---------------------------------------------------------------------------
@@ -704,7 +696,7 @@ export async function browseWorkspace(path: string = ''): Promise<BrowseResult> 
 }
 
 export function getWorkspaceDownloadUrl(path: string): string {
-  return `${getApiUrl()}/api/nanobot/workspace/download?path=${encodeURIComponent(path)}`;
+  return `${API_URL}/api/nanobot/workspace/download?path=${encodeURIComponent(path)}`;
 }
 
 export async function uploadToWorkspace(
@@ -724,7 +716,7 @@ export async function uploadToWorkspace(
 
   return new Promise<WorkspaceItem>((resolve, reject) => {
     const xhr = new XMLHttpRequest();
-    xhr.open('POST', `${getApiUrl()}/api/nanobot/workspace/upload`);
+    xhr.open('POST', `${API_URL}/api/nanobot/workspace/upload`);
     if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`);
 
     xhr.upload.onprogress = (e) => {

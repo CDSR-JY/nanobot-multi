@@ -64,9 +64,9 @@ services:
   frontend:
     build:
       context: ./frontend
-    environment:
-      # 运行时注入给 /api/runtime-config，无需重新 build frontend 镜像
-      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8080}
+      args:
+        # 浏览器访问的 API 地址。本机访问用 localhost；其他设备通过 IP 访问时改为 http://本机IP:8080
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8080}
     ports:
       - "0.0.0.0:3080:3000"   # 绑定所有网卡，便于本机 IP / 局域网访问
     networks:

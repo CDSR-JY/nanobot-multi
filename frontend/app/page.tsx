@@ -31,6 +31,38 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import type { ChatMessage, SlashCommand, FileAttachment } from '@/types';
 
+function normalizeMessageContent(content: unknown): string {
+  if (typeof content === 'string') return content;
+  if (content == null) return '';
+
+  if (Array.isArray(content)) {
+    const parts = content
+      .map((part) => {
+        if (typeof part === 'string') return part;
+        if (!part || typeof part !== 'object') return String(part);
+        const p = part as Record<string, unknown>;
+        if (typeof p.text === 'string') return p.text;
+        if (p.type === 'image_url') return '[image]';
+        return '';
+      })
+      .filter(Boolean);
+    return parts.join('\n');
+  }
+
+  if (typeof content === 'object') {
+    const obj = content as Record<string, unknown>;
+    if (typeof obj.text === 'string') return obj.text;
+    if (obj.type === 'image_url') return '[image]';
+    try {
+      return JSON.stringify(content);
+    } catch {
+      return String(content);
+    }
+  }
+
+  return String(content);
+}
+
 export default function ChatPage() {
   const {
     sessionId,
@@ -119,7 +151,7 @@ export default function ChatPage() {
         setIsLoading(false);
         addMessage({
           role: 'assistant',
-          content: data.content || '',
+          content: normalizeMessageContent(data.content),
           timestamp: new Date().toISOString(),
           attachments: data.attachments,
         });
@@ -157,7 +189,12 @@ export default function ChatPage() {
   const loadSessionMessages = async (key: string) => {
     try {
       const detail = await getSession(key);
-      setMessages(detail.messages);
+      setMessages(
+        detail.messages.map((m) => ({
+          ...m,
+          content: normalizeMessageContent((m as unknown as { content?: unknown }).content),
+        }))
+      );
     } catch {
       setMessages([]);
     }
@@ -582,6 +619,7 @@ function MessageBubble({
   isStreaming?: boolean;
 }) {
   const isUser = message.role === 'user';
+  const content = normalizeMessageContent((message as unknown as { content?: unknown }).content);
 
   return (
     <div className={`flex gap-3 ${isUser ? 'justify-end' : ''}`}>
@@ -639,10 +677,10 @@ function MessageBubble({
 
         {/* Text content */}
         {isUser ? (
-          <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+          <p className="text-sm whitespace-pre-wrap">{content}</p>
         ) : (
           <div className="prose prose-sm prose-invert max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
-            <ReactMarkdown>{message.content}</ReactMarkdown>
+            <ReactMarkdown>{content}</ReactMarkdown>
             {isStreaming && (
               <span className="inline-block w-1.5 h-4 bg-foreground/60 animate-pulse ml-0.5 align-middle" />
             )}

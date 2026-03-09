@@ -1,7 +1,6 @@
 import './globals.css';
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
-import Script from 'next/script';
 import Header from '@/components/Header';
 import AuthGuard from '@/components/AuthGuard';
 
@@ -20,7 +19,6 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body className={inter.className}>
-        <Script src="/api/runtime-config" strategy="beforeInteractive" />
         <div className="min-h-screen bg-background text-foreground">
           <Header />
           <main className="pt-14">

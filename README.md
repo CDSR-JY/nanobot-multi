@@ -19,7 +19,7 @@ This document is intentionally slimmed down for **multi-tenant Docker deployment
 Create `/home/tsn/github_code/nanobot-multi/.env`:
 
 ```env
-# Frontend -> gateway URL injected at runtime (no frontend rebuild needed)
+# Frontend -> gateway URL injected at build time
 NEXT_PUBLIC_API_URL=http://10.45.110.210:8080
 
 # LLM routing (vLLM / OpenAI-compatible endpoint)
@@ -83,10 +83,11 @@ docker compose up -d frontend
 
 ### C. Changed only `NEXT_PUBLIC_API_URL`
 
-No image rebuild required. Recreate frontend container to reload runtime config:
+Rebuild frontend image (value is baked at build time):
 
 ```bash
-docker compose up -d --force-recreate frontend
+docker compose build frontend --no-cache
+docker compose up -d frontend
 ```
 
 ### D. Changed gateway code (`platform/`)
